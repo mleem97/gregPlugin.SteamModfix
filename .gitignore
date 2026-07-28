@@ -1,0 +1,6 @@
+**/bin/
+**/obj/
+*.user
+*.DotSettings.user
+UserData/
+**/references/*.dll

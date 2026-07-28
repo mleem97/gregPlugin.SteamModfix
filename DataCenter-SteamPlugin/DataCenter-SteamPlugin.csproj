@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <RootNamespace>DataCenter_SteamPlugin</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyName>gregPlugin.SteamModfix</AssemblyName>
+        <PlatformTarget>x64</PlatformTarget>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+    <Import Project="..\..\LocalConfigPlugin.props" Condition="Exists('..\..\LocalConfigPlugin.props')" />
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+        <PlatformTarget>x64</PlatformTarget>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Reference Include="MelonLoader" HintPath="references/MelonLoader.dll" Private="false" />
+      <Reference Include="0Harmony" HintPath="references/0Harmony.dll" Private="false" />
+      <Reference Include="Il2CppInterop.Runtime" HintPath="references/Il2CppInterop.Runtime.dll" Private="false" />
+      <Reference Include="Il2Cppmscorlib" HintPath="references/Il2Cppmscorlib.dll" Private="false" />
+    </ItemGroup>
+
+</Project>
