@@ -1,39 +1,57 @@
 # gregPlugin.SteamModfix
 
-External MelonLoader source discovery for Data Center. The rewrite keeps Workshop files read-only and registers their directories with MelonLoader's own folder scanner/resolver instead of copying DLLs into the game folders.
+> External MelonLoader source integration for Data Center: GameRoot, StreamingAssets, GregModmanager and installed Steam Workshop items.
+
+[![Discord Members](https://img.shields.io/discord/1392073682133848075?style=for-the-badge&logo=discord&logoColor=white&label=Discord%20Members)](https://discord.gg/greg)
+[![gregFramework](https://img.shields.io/badge/gregFramework-Website-blue?style=for-the-badge)](https://gregframework.eu)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](./LICENSE)
+[![Version](https://img.shields.io/badge/Version-2.0.0-orange?style=for-the-badge)](https://github.com/mleem97/gregPlugin.SteamModfix/releases/tag/v2.0.0)
+[![GameVersion](https://img.shields.io/badge/Game%20Version-1.1.0-yellow?style=for-the-badge)]()
+[![Unity](https://img.shields.io/badge/Unity-6000.4.12f1-black?style=for-the-badge&logo=unity&logoColor=white)]()
+
+## Links
+
+- **Repository:** [github.com/mleem97/gregPlugin.SteamModfix](https://github.com/mleem97/gregPlugin.SteamModfix)
+- **Release:** [v2.0.0](https://github.com/mleem97/gregPlugin.SteamModfix/releases/tag/v2.0.0)
+- **Discord / Support:** [discord.gg/greg](https://discord.gg/greg)
+- **Website:** [gregframework.eu](https://gregframework.eu)
+
+## Features
+
+- Registers external MelonLoader source directories without copying or modifying Workshop files.
+- Supports GameRoot `Mods`, `Plugins`, `UserLibs`.
+- Supports dynamic Unity `*_Data/StreamingAssets` and legacy `StreamingAssets/MelonLoader` layouts.
+- Discovers installed and subscribed Workshop items through optional Steamworks.NET reflection or read-only `appworkshop_<AppId>.acf` fallback.
+- Supports `Mods`, `Plugins`, `UserLibs`, `MelonLoader/...`, and metadata-inspected legacy Workshop root DLLs.
+- Uses MelonLoader's own folder preprocessing, dependency resolution, duplicate handling, sorting, registration and lifecycle pipeline.
+- Provides source priorities, conflict diagnostics, path validation, symlink protection and machine-readable reports.
+- Includes a validated `MelonLoaderAdapter_0_7_3` and an early bootstrap API for GregModmanager.
 
 ## Compatibility and startup timing
 
-The implementation is tested against Data Center 1.1.0, Unity 6000.4.12f1 and MelonLoader 0.7.3 on x64.
+Tested with Data Center 1.1.0, Unity 6000.4.12f1, MelonLoader 0.7.3 and x64.
 
-MelonLoader 0.7.3 performs this order internally:
+MelonLoader scans UserLibs and Plugins before normal MelonPlugins are initialized. Therefore the ordinary plugin can only register external Mods during `OnPreModsLoaded`. Same-launch Workshop Plugins and UserLibs require a preloader or GregModmanager to call:
 
-```text
-Core.Initialize
-  ScanForFolders
-  load UserLibs
-  load Plugins
-OnPreModsLoaded
-  load Mods
+```csharp
+new StartupBootstrap().RegisterBeforeFolderScan();
 ```
 
-Therefore the ordinary `gregPlugin.SteamModfix.dll` can register external Mods during `OnPreModsLoaded`, but it cannot honestly provide same-launch external Plugins or UserLibs. `StartupBootstrap.RegisterBeforeFolderScan()` is the supported early entry point for GregModmanager or a maintained MelonLoader preloader. It must run before `MelonLoader.Core.Initialize()` calls `ScanForFolders()`.
+This call must happen before `MelonLoader.Core.Initialize()` invokes `ScanForFolders()`. The plugin does not falsely claim same-launch Plugin/UserLib support when installed as a normal plugin.
 
-If no early bootstrap is installed, the plugin logs the limitation and leaves the normal local folders untouched.
+## Installation
 
-## Sources
+1. Install MelonLoader 0.7.3 for Data Center.
+2. Download `gregPlugin.SteamModfix.dll` from the [v2.0.0 release](https://github.com/mleem97/gregPlugin.SteamModfix/releases/tag/v2.0.0).
+3. Copy it to `Data Center/Plugins/` or `Data Center/Mods/`.
+4. For same-launch external Plugins/UserLibs, integrate `StartupBootstrap` into the pre-launch bootstrap path.
+5. Start the game and inspect `MelonLoader/Latest.log` and `UserData/gregPlugin.SteamModfix/source-report.json`.
 
-The discovery layer handles:
-
-- `<GameRoot>/Mods`, `Plugins` and `UserLibs`;
-- every `<GameRoot>/*_Data/StreamingAssets/{Mods,Plugins,UserLibs}` and the legacy `StreamingAssets/MelonLoader/...` layout;
-- installed, subscribed Workshop items found through `appworkshop_<AppId>.acf`, including `Mods`, `Plugins`, `UserLibs`, `MelonLoader/...`, and metadata-inspected legacy root DLL layouts.
-
-Workshop items that are missing, updating, downloading, unsafe, malformed, or over the configured limits are skipped individually. Steam metadata is read-only; no Workshop file is moved, copied, deleted, or modified.
+Workshop directories remain controlled by Steam and are never moved, overwritten or deleted.
 
 ## Configuration
 
-Configuration is stored at `UserData/gregPlugin.SteamModfix/config.json`:
+The configuration file is `UserData/gregPlugin.SteamModfix/config.json`:
 
 ```json
 {
@@ -50,23 +68,49 @@ Configuration is stored at `UserData/gregPlugin.SteamModfix/config.json`:
 }
 ```
 
-`appId: 0` enables automatic detection from the installed Steam app manifest. The generated report is `UserData/gregPlugin.SteamModfix/source-report.json`.
+`appId: 0` enables automatic detection. `GREGMODMANAGER_SOURCES` can contain additional manager source roots separated by the platform path separator.
 
-## Architecture
+## Build from Source
 
-`Discovery/` is filesystem-only and reusable by GregModmanager. `Sources/` normalizes and deduplicates source directories. `Integration/MelonLoaderAdapter_0_7_3` validates exact private field types before adding directories to MelonLoader's `_userLibDirs`, `_pluginDirs`, `_modDirs` and `MelonAssemblyResolver`. `Diagnostics/` writes reports and conflict decisions. No custom assembly loader or manual Melon registration remains.
+Requirements:
 
-Unsupported MelonLoader versions disable external injection and are reported clearly. The normal game-root MelonLoader folders remain unaffected.
-
-## Build and tests
+- .NET 6 SDK/runtime
+- Data Center 1.1.0 / Unity 6000.4.12f1
+- MelonLoader 0.7.3 reference assemblies in `DataCenter-SteamPlugin/references/` (intentionally not committed)
 
 ```bash
-dotnet build DataCenter-SteamPlugin/DataCenter-SteamPlugin.csproj -c Release
+dotnet restore DataCenter-SteamPlugin/DataCenter-SteamPlugin.csproj
+dotnet build DataCenter-SteamPlugin/DataCenter-SteamPlugin.csproj -c Release --no-restore
 dotnet run --project tests/SteamModfix.Tests.csproj -c Release
 ```
 
-The test runner covers source normalization, missing-path rejection, deterministic priority, relative-path rejection, and configuration round-tripping.
+Build output:
+
+```text
+DataCenter-SteamPlugin/bin/Release/net6.0/gregPlugin.SteamModfix.dll
+```
+
+The public GitHub release contains the built DLL. Generated `bin/`, `obj/`, and private reference assemblies are excluded from Git.
+
+## Project Structure
+
+```text
+DataCenter-SteamPlugin/
+├── Configuration/       # JSON configuration model
+├── Discovery/           # GameRoot, StreamingAssets, manager and Workshop providers
+├── Integration/         # MelonLoader adapter and conflict resolver
+├── Sources/             # normalized source abstraction and priorities
+├── Diagnostics/         # source-report writer
+├── StartupBootstrap.cs  # pre-scan entry point
+└── WorkshopModLoader.cs # normal-plugin Mods fallback
+tests/                   # deterministic source/configuration/metadata tests
+docs/                    # source layout and maintenance notes
+```
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](./LICENSE).
+
+## Join the gregFramework Team!
+
+Testing, documentation and feedback are welcome in the [greg Discord](https://discord.gg/greg).
