@@ -15,7 +15,7 @@ public sealed class ConflictResolver
             var candidates = new List<(string Path, MelonSourceDirectory Source, AssemblyMetadata Meta)>();
             foreach (var source in registry.GetRegisteredSources(type))
             {
-                foreach (var dll in Directory.EnumerateFiles(source.Path, "*.dll", SearchOption.TopDirectoryOnly))
+                foreach (var dll in DataCenter_SteamPlugin.Discovery.AssemblyMetadataInspector.EnumerateDlls(source.Path))
                     if (_inspector.TryInspect(dll, out var meta) && meta != null) candidates.Add((dll, source, meta));
             }
             foreach (var group in candidates.GroupBy(x => x.Meta.Name, StringComparer.OrdinalIgnoreCase))

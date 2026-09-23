@@ -39,9 +39,27 @@ public sealed class AssemblyMetadataInspector
         catch { return false; }
     }
 
+    /// <summary>
+    /// Case-insensitive DLL-Enumeration (Linux/Proton-Dateisysteme sind
+    /// case-sensitiv — "*.dll" fände dort "MOD.DLL" nicht).
+    /// </summary>
+    public static IEnumerable<string> EnumerateDlls(string directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+            return Enumerable.Empty<string>();
+        try
+        {
+            return Directory.EnumerateFiles(directory, "*", SearchOption.TopDirectoryOnly)
+                .Where(f => f.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+        catch { return Enumerable.Empty<string>(); }
+    }
+
     public IEnumerable<AssemblyMetadata> InspectDirectory(string directory)
     {
-        foreach (var dll in Directory.EnumerateFiles(directory, "*.dll", SearchOption.TopDirectoryOnly))
+        foreach (var dll in EnumerateDlls(directory))
             if (TryInspect(dll, out var metadata) && metadata != null) yield return metadata;
     }
 

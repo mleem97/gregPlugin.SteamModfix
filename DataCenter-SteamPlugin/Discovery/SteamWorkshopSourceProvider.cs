@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using DataCenter_SteamPlugin.Configuration;
 using DataCenter_SteamPlugin.Sources;
 using MelonLoader;
@@ -53,7 +54,7 @@ public sealed class SteamWorkshopSourceProvider
         RegisterSet(r, root, item.Id + ":root", priority);
         RegisterSet(r, Path.Combine(root, "MelonLoader"), item.Id + ":melonloader", priority);
         if (!config.Workshop.AllowLegacyLayouts) return;
-        var dlls = Directory.EnumerateFiles(root, "*.dll", SearchOption.TopDirectoryOnly).ToList();
+        var dlls = AssemblyMetadataInspector.EnumerateDlls(root).ToList();
         if (dlls.Count == 0) return;
         if (dlls.Count > config.Security.MaximumAssemblyCountPerItem) return;
         bool hasMod = false, hasPlugin = false, hasLib = false;
@@ -92,14 +93,33 @@ public sealed class SteamWorkshopSourceProvider
         try
         {
             var root = MelonEnvironment.GameRootDirectory;
-            foreach (var acf in Directory.GetFiles(Directory.GetParent(root)!.FullName, "appmanifest_*.acf"))
+            var leaf = Path.GetFileName(root);
+            // Steam legt appmanifest_*.acf in steamapps/ ab — das ist der
+            // Grosseltern-Ordner des Spielverzeichnisses (common/<Spiel>).
+            // Beide Ebenen durchsuchen; Whitespace im ACF tolerant matchen.
+            var searchDirs = new List<string>();
+            var parent = Directory.GetParent(root);
+            if (parent != null)
             {
-                if (File.ReadAllText(acf).Contains($"\"installdir\"\t\"{Path.GetFileName(root)}\"", StringComparison.OrdinalIgnoreCase))
+                searchDirs.Add(parent.FullName);
+                if (parent.Parent != null) searchDirs.Add(parent.Parent.FullName);
+            }
+            foreach (var dir in searchDirs.Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                foreach (var acf in Directory.GetFiles(dir, "appmanifest_*.acf"))
                 {
-                    var name = Path.GetFileNameWithoutExtension(acf).Replace("appmanifest_", "");
-                    if (uint.TryParse(name, out var id)) return id;
+                    var text = File.ReadAllText(acf);
+                    if (Regex.IsMatch(text, "\"installdir\"\\s+\"" + Regex.Escape(leaf) + "\"", RegexOptions.IgnoreCase))
+                    {
+                        var name = Path.GetFileNameWithoutExtension(acf).Replace("appmanifest_", "");
+                        if (uint.TryParse(name, out var id)) return id;
+                    }
                 }
             }
+            // steam_appid.txt Fallback (Standard Steam-Mechanismus).
+            var appIdFile = Path.Combine(root, "steam_appid.txt");
+            if (File.Exists(appIdFile) && uint.TryParse(File.ReadAllText(appIdFile).Trim(), out var fileId))
+                return fileId;
         }
         catch { }
         return 0;

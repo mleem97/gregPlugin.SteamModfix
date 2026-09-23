@@ -1,120 +1,90 @@
 # gregPlugin.SteamModfix
 
-> External MelonLoader source integration for Data Center: GameRoot, StreamingAssets, GregModmanager and installed Steam Workshop items.
+> gregPlugin.SteamModfix
 
-[![Discord Members](https://img.shields.io/discord/1392073682133848075?style=for-the-badge&logo=discord&logoColor=white&label=Discord%20Members)](https://discord.gg/greg)
-[![gregFramework](https://img.shields.io/badge/gregFramework-Website-blue?style=for-the-badge)](https://gregframework.eu)
-[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](./LICENSE)
-[![Version](https://img.shields.io/badge/Version-2.0.0-orange?style=for-the-badge)](https://github.com/mleem97/gregPlugin.SteamModfix/releases/tag/v2.0.0)
-[![GameVersion](https://img.shields.io/badge/Game%20Version-1.1.0-yellow?style=for-the-badge)]()
-[![Unity](https://img.shields.io/badge/Unity-6000.4.12f1-black?style=for-the-badge&logo=unity&logoColor=white)]()
+![License](https://img.shields.io/github/license/mleem97/gregPlugin.SteamModfix?style=for-the-badge) ![Last commit](https://img.shields.io/github/last-commit/mleem97/gregPlugin.SteamModfix?style=for-the-badge) ![Repo size](https://img.shields.io/github/repo-size/mleem97/gregPlugin.SteamModfix?style=for-the-badge) ![Stars](https://img.shields.io/github/stars/mleem97/gregPlugin.SteamModfix?style=for-the-badge)
 
 ## Links
 
-- **Repository:** [github.com/mleem97/gregPlugin.SteamModfix](https://github.com/mleem97/gregPlugin.SteamModfix)
-- **Release:** [v2.0.0](https://github.com/mleem97/gregPlugin.SteamModfix/releases/tag/v2.0.0)
-- **Discord / Support:** [discord.gg/greg](https://discord.gg/greg)
-- **Website:** [gregframework.eu](https://gregframework.eu)
+- **Steam Workshop:** [My Workshop (Data Center)](https://steamcommunity.com/id/frikadelle3000/myworkshopfiles/?appid=4170200)
+- **Repository:** [https://github.com/mleem97/gregPlugin.SteamModfix](https://github.com/mleem97/gregPlugin.SteamModfix)
+- **Issues:** [https://github.com/mleem97/gregPlugin.SteamModfix/issues](https://github.com/mleem97/gregPlugin.SteamModfix/issues)
+- **Releases:** [https://github.com/mleem97/gregPlugin.SteamModfix/releases](https://github.com/mleem97/gregPlugin.SteamModfix/releases)
+
+## Overview
+
+**gregPlugin.SteamModfix** — gregPlugin.SteamModfix
+
+Siehe [docs/INDEX.md](docs/INDEX.md) für die komplette Dokumentation.
+
+## Compatibility
+
+| Plattform | Status |
+|---|---|
+| Windows x64 | Supported |
+| Linux x64 | Supported |
 
 ## Features
 
-- Registers external MelonLoader source directories without copying or modifying Workshop files.
-- Supports GameRoot `Mods`, `Plugins`, `UserLibs`.
-- Supports dynamic Unity `*_Data/StreamingAssets` and legacy `StreamingAssets/MelonLoader` layouts.
-- Discovers installed and subscribed Workshop items through optional Steamworks.NET reflection or read-only `appworkshop_<AppId>.acf` fallback.
-- Supports `Mods`, `Plugins`, `UserLibs`, `MelonLoader/...`, and metadata-inspected legacy Workshop root DLLs.
-- Uses MelonLoader's own folder preprocessing, dependency resolution, duplicate handling, sorting, registration and lifecycle pipeline.
-- Provides source priorities, conflict diagnostics, path validation, symlink protection and machine-readable reports.
-- Includes a validated `MelonLoaderAdapter_0_7_3` and an early bootstrap API for GregModmanager.
-
-## Compatibility and startup timing
-
-Tested with Data Center 1.1.0, Unity 6000.4.12f1, MelonLoader 0.7.3 and x64.
-
-MelonLoader scans UserLibs and Plugins before normal MelonPlugins are initialized. Therefore the ordinary plugin can only register external Mods during `OnPreModsLoaded`. Same-launch Workshop Plugins and UserLibs require a preloader or GregModmanager to call:
-
-```csharp
-new StartupBootstrap().RegisterBeforeFolderScan();
-```
-
-This call must happen before `MelonLoader.Core.Initialize()` invokes `ScanForFolders()`. The plugin does not falsely claim same-launch Plugin/UserLib support when installed as a normal plugin.
+- Siehe [docs/INDEX.md](docs/INDEX.md) und [QUICKSTART.md](QUICKSTART.md)
 
 ## Installation
 
-1. Install MelonLoader 0.7.3 for Data Center.
-2. Download `gregPlugin.SteamModfix.dll` from the [v2.0.0 release](https://github.com/mleem97/gregPlugin.SteamModfix/releases/tag/v2.0.0).
-3. Copy it to `Data Center/Plugins/` or `Data Center/Mods/`.
-4. For same-launch external Plugins/UserLibs, integrate `StartupBootstrap` into the pre-launch bootstrap path.
-5. Start the game and inspect `MelonLoader/Latest.log` and `UserData/gregPlugin.SteamModfix/source-report.json`.
-
-Workshop directories remain controlled by Steam and are never moved, overwritten or deleted.
-
-## Configuration
-
-The configuration file is `UserData/gregPlugin.SteamModfix/config.json`:
-
-```json
-{
-  "enabled": true,
-  "appId": 0,
-  "sources": { "gameRoot": true, "streamingAssets": true, "steamWorkshop": true },
-  "workshop": { "provider": "Auto", "allowLegacyLayouts": true, "allowUnverifiedFolders": false, "treatRootMelonModsAsMods": true },
-  "loading": {
-    "sourcePriority": ["GameRoot", "GregModmanager", "StreamingAssets", "SteamWorkshop"],
-    "enableUserLibs": true, "enablePlugins": true, "enableMods": true, "enableNativeLibraries": false
-  },
-  "security": { "allowSymbolicLinks": false, "allowNativeLibraries": false, "maximumWorkshopItemSizeMb": 1000, "maximumAssemblyCountPerItem": 500 },
-  "diagnostics": { "verboseLogging": false, "writeSourceReport": true }
-}
-```
-
-`appId: 0` enables automatic detection. `GREGMODMANAGER_SOURCES` can contain additional manager source roots separated by the platform path separator.
+Siehe [QUICKSTART.md](QUICKSTART.md).
 
 ## Build from Source
 
-Requirements:
-
-- .NET 6 SDK/runtime
-- Data Center 1.1.0 / Unity 6000.4.12f1
-- MelonLoader 0.7.3 reference assemblies in `DataCenter-SteamPlugin/references/` (intentionally not committed)
-
 ```bash
-dotnet restore DataCenter-SteamPlugin/DataCenter-SteamPlugin.csproj
-dotnet build DataCenter-SteamPlugin/DataCenter-SteamPlugin.csproj -c Release --no-restore
-dotnet run --project tests/SteamModfix.Tests.csproj -c Release
+git clone git@github.com:mleem97/gregPlugin.SteamModfix.git
+cd gregPlugin.SteamModfix
 ```
 
-Build output:
+Details: [QUICKSTART.md](QUICKSTART.md), [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```text
-DataCenter-SteamPlugin/bin/Release/net6.0/gregPlugin.SteamModfix.dll
+## Repository Layout
+
+```
+├── README.md            # Diese Datei
+├── QUICKSTART.md        # Schnellstart
+├── CHANGELOG.md         # Changelog (Keep a Changelog)
+├── CONTRIBUTING.md      # Mitmachen
+├── SECURITY.md          # Sicherheitsmeldungen
+├── CODE_OF_CONDUCT.md   # Verhaltenskodex
+├── AGENTS.md            # Hinweise für KI-Agenten
+├── LICENSE              # MIT
+├── VERSION              # Single Source of Truth für die Version
+├── docs/                # Dokumentation ([Index](docs/INDEX.md))
+├── scripts/             # Build-/Hilfsskripte
+├── tests/               # Tests
+├── references/          # Referenzen
+├── sponsors/            # Sponsoren
+└── examples/            # Beispiele
 ```
 
-The public GitHub release contains the built DLL. Generated `bin/`, `obj/`, and private reference assemblies are excluded from Git.
+## API Documentation
 
-## Project Structure
+Siehe [`docs/INDEX.md`](docs/INDEX.md).
 
-```text
-DataCenter-SteamPlugin/
-├── Configuration/       # JSON configuration model
-├── Discovery/           # GameRoot, StreamingAssets, manager and Workshop providers
-├── Integration/         # MelonLoader adapter and conflict resolver
-├── Sources/             # normalized source abstraction and priorities
-├── Diagnostics/         # source-report writer
-├── StartupBootstrap.cs  # pre-scan entry point
-└── WorkshopModLoader.cs # normal-plugin Mods fallback
-tests/                   # deterministic source/configuration/metadata tests
-docs/                    # source layout and maintenance notes
-```
+## Credits
+
+| Rolle | Contributor |
+|---|---|
+| **Codebase** | [mleem97](https://github.com/mleem97) |
+
+## Contributing
+
+Siehe [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+MIT — siehe [`LICENSE`](LICENSE).
 
-## Join the gregFramework Team!
+## 🚀 Join the gregFramework Team!
 
-### macOS Support
+Baust du gerne Mods, Tools oder Docs? Melde dich: **apply@gregframework.eu** oder via
+[Discord](https://discord.gg/greg) — Code, Assets, Docs, Testing, Infra, Community.
 
-A native macOS version of Data Center already exists. At the moment, however, there is no implementation path available for macOS support in this plugin, and I do not have access to an Apple device for development or testing. I am actively looking for contributors who can help make macOS support possible. See “Join the gregFramework Team” below.
+---
 
-Testing, documentation and feedback are welcome in the [greg Discord](https://discord.gg/greg).
+**gregFramework — powered by the community.**
+

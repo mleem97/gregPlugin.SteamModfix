@@ -21,7 +21,14 @@ public sealed class WorkshopModLoader : MelonPlugin
         _adapter = new MelonLoaderAdapterResolver().Resolve();
         LogSources();
         if (_configuration.Diagnostics.WriteSourceReport) new DiagnosticReportWriter().Write(_registry, "plugin-fallback", _adapter.AdapterId, SteamModfixRuntime.WorkshopItems, SteamModfixRuntime.SkippedItems);
-        MelonLogger.Warning("[SteamModfix] Running as a normal MelonPlugin: external Plugins/UserLibs are too late for this launch. Install/call StartupBootstrap before MelonLoader.Core.Initialize for same-launch support.");
+        var pendingLate = _registry.All
+            .Where(s => (s.Type == MelonSourceType.Plugins || s.Type == MelonSourceType.UserLibs)
+                && s.Provider != MelonSourceProvider.GameRoot)
+            .ToList();
+        if (pendingLate.Count > 0)
+            MelonLogger.Warning("[SteamModfix] Running as a normal MelonPlugin: external Plugins/UserLibs are too late for this launch. Install/call StartupBootstrap before MelonLoader.Core.Initialize for same-launch support.");
+        else
+            MelonLogger.Msg("[SteamModfix] Normal plugin mode; no external Plugins/UserLibs pending for this launch.");
     }
 
     public override void OnPreModsLoaded()
