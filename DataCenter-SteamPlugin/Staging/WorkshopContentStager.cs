@@ -39,7 +39,7 @@ public sealed class WorkshopContentStager
 
     private static readonly HashSet<string> MirrorMarkers = new(StringComparer.OrdinalIgnoreCase)
     {
-        "Mods", "Plugins", "UserLibs", "MelonLoader",
+        "Mods", "Plugins", "UserLibs", "UserData", "MelonLoader",
     };
 
     private readonly AssemblyMetadataInspector _inspector = new();
@@ -94,7 +94,7 @@ public sealed class WorkshopContentStager
         {
             var item = DescribeItem(itemRoot);
             if (item == null) continue;
-            var (itemId, targets) = item.Value;
+            var (itemId, targets, baseDir) = item.Value;
 
             // Whole-item assembly budget (DLLs across all mirror folders).
             long dllCount = 0;
@@ -110,7 +110,7 @@ public sealed class WorkshopContentStager
                 foreach (var file in EnumerateMirrorFiles(dir, kind))
                 {
                     scanned++;
-                    var targetRel = RelFromItem(itemRoot, file);
+                    var targetRel = RelFromItem(baseDir, file);
                     if (targetRel == null) { errors++; continue; }
 
                     try
@@ -162,15 +162,46 @@ public sealed class WorkshopContentStager
     /// Returns the item's mirror target folders (item-root relative, with kind),
     /// or null when the item has no mirror layout at all.
     /// </summary>
-    private static (string ItemId, List<(string Dir, MirrorKind Kind)> Targets)? DescribeItem(string itemRoot)
+    private static (string ItemId, List<(string Dir, MirrorKind Kind)> Targets, string BaseDir)? DescribeItem(string itemRoot)
     {
+        // Steam workshop convention puts the payload under a "content/" wrapper
+        // (content/Mods, content/Plugins, ...). Relative paths are measured from
+        // inside it, so destinations come out as Mods/X.dll (never Mods/content/Mods/X.dll).
         try
         {
             var itemId = new DirectoryInfo(itemRoot).Name;
-            var targets = new List<(string, MirrorKind)>();
+            var found = CollectMirrorTargets(itemRoot);
+            if (found.Count > 0) return (itemId, found, itemRoot);
+
+            var contentRoot = Path.Combine(itemRoot, "content");
+            if (Directory.Exists(contentRoot))
+            {
+                found = CollectMirrorTargets(contentRoot);
+                if (found.Count > 0) return (itemId, found, contentRoot);
+            }
+
+            // Legacy layout: no mirror folders, but MelonMod DLLs flat in root
+            // (or flat inside content/).
+            foreach (var flatDir in new[] { itemRoot, contentRoot })
+            {
+                if (!Directory.Exists(flatDir)) continue;
+                var rootDlls = AssemblyMetadataInspector.EnumerateDlls(flatDir).ToList();
+                if (rootDlls.Count > 0)
+                    return (itemId, new List<(string, MirrorKind)> { (flatDir, MirrorKind.Mods) }, flatDir);
+            }
+            return null;
+        }
+        catch { return null; }
+    }
+
+    private static List<(string Dir, MirrorKind Kind)> CollectMirrorTargets(string baseDir)
+    {
+        var targets = new List<(string, MirrorKind)>();
+        try
+        {
             foreach (var sub in new[] { "Mods", "Plugins", "UserLibs", "UserData" })
             {
-                var p = Path.Combine(itemRoot, sub);
+                var p = Path.Combine(baseDir, sub);
                 if (Directory.Exists(p))
                     targets.Add((p, sub switch
                     {
@@ -180,13 +211,9 @@ public sealed class WorkshopContentStager
                         _ => MirrorKind.UserData,
                     }));
             }
-            if (targets.Count > 0) return (itemId, targets);
-
-            // Legacy layout: no mirror folders, but a MelonMod DLL directly in the root.
-            var rootDlls = AssemblyMetadataInspector.EnumerateDlls(itemRoot).ToList();
-            return rootDlls.Count > 0 ? (itemId, new List<(string, MirrorKind)> { (itemRoot, MirrorKind.Mods) }) : null;
         }
-        catch { return null; }
+        catch { }
+        return targets;
     }
 
     private static long CountDlls(string dir)
