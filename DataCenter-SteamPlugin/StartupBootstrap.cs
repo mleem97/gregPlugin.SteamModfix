@@ -3,6 +3,7 @@ using DataCenter_SteamPlugin.Diagnostics;
 using DataCenter_SteamPlugin.Discovery;
 using DataCenter_SteamPlugin.Integration;
 using DataCenter_SteamPlugin.Sources;
+using DataCenter_SteamPlugin.Staging;
 using MelonLoader;
 using MelonLoader.Utils;
 
@@ -20,6 +21,15 @@ public sealed class StartupBootstrap
         if (!config.Enabled) return false;
         var registry = SteamModfixRuntime.Discover(config);
         new ConflictResolver().LogConflicts(registry);
+        try
+        {
+            new WorkshopContentStager().Stage(registry, config,
+                MelonEnvironment.GameRootDirectory, m => MelonLogger.Msg(m));
+        }
+        catch (Exception ex)
+        {
+            MelonLogger.Error("[SteamModfix] Workshop content staging failed: " + ex.Message);
+        }
         var adapter = new MelonLoaderAdapterResolver().Resolve();
         if (!adapter.IsSupported) { MelonLogger.Error($"[SteamModfix] Unsupported MelonLoader version {typeof(MelonBase).Assembly.GetName().Version}; external source injection disabled."); return false; }
         var ok = adapter.Register(registry.All, includePluginsAndUserLibs: true, config.Loading.EnableNativeLibraries && config.Security.AllowNativeLibraries);

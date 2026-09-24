@@ -8,6 +8,7 @@ public sealed class SteamModfixConfiguration
     public uint AppId { get; set; }
     public SourceToggles Sources { get; set; } = new();
     public WorkshopOptions Workshop { get; set; } = new();
+    public StagingOptions Staging { get; set; } = new();
     public LoadingOptions Loading { get; set; } = new();
     public SecurityOptions Security { get; set; } = new();
     public DiagnosticOptions Diagnostics { get; set; } = new();
@@ -43,6 +44,15 @@ public sealed class SteamModfixConfiguration
 
 public sealed class SourceToggles { public bool GameRoot { get; set; } = true; public bool StreamingAssets { get; set; } = true; public bool SteamWorkshop { get; set; } = true; }
 public sealed class WorkshopOptions { public string Provider { get; set; } = "Auto"; public bool AllowLegacyLayouts { get; set; } = true; public bool AllowUnverifiedFolders { get; set; } public bool TreatRootMelonModsAsMods { get; set; } = true; }
+public sealed class StagingOptions
+{
+    /// <summary>Copies MelonMod DLLs from Workshop items into the game's Mods folder. DLLs only.</summary>
+    public bool EnableDllStaging { get; set; } = true;
+    /// <summary>When false (default), a locally newer DLL is never downgraded by a Workshop copy.</summary>
+    public bool OverwriteLocalNewer { get; set; }
+    /// <summary>Removes staged copies whose Workshop source disappeared (unsubscribed). Never touches user files.</summary>
+    public bool PruneUnsubscribed { get; set; } = true;
+}
 public sealed class LoadingOptions
 {
     public List<string> SourcePriority { get; set; } = new() { "GameRoot", "GregModmanager", "StreamingAssets", "SteamWorkshop" };
