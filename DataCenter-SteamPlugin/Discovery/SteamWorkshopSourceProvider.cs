@@ -53,6 +53,8 @@ public sealed class SteamWorkshopSourceProvider
         var priority = SourcePriority.For(config, MelonSourceProvider.SteamWorkshop);
         RegisterSet(r, root, item.Id + ":root", priority);
         RegisterSet(r, Path.Combine(root, "MelonLoader"), item.Id + ":melonloader", priority);
+        // Steam workshop convention: payload under content/ (content/Mods, ...).
+        RegisterSet(r, Path.Combine(root, "content"), item.Id + ":content", priority);
         if (!config.Workshop.AllowLegacyLayouts) return;
         var dlls = AssemblyMetadataInspector.EnumerateDlls(root).ToList();
         if (dlls.Count == 0) return;
